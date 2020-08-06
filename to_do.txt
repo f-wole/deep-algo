@@ -1,0 +1,46 @@
+*** 3 MAGGIO ***
+- dalle prove fatte in prove_indici.py risulta che IUSE.MI si avvicina molto a S&P500, ma parte da 2010.
+  si potrebbe addestrare su S&P500 e testare su IUSE.MI per valutare le performance. Poi il modello in
+  produzione potrebbe essere ottenuto concatenando S&P500 e IUSE.MI?
+  Il problema degli etf world è che i dati partono dal 2010: puoi provare ad usare modello S&P500 per predire
+  su test=storico_etf_world
+- e se invece facessi predizione giornaliera (ovvero predico prezzo del giorno dopo) e su questa base poi
+  costruisco un algoritmo più complicato di policy che tenga conto di tutti i prezzi passati?
+- da vecchia mail zio so che le commissioni Allianz sono 0.15% sia in acquisto che in vendita, che
+  non è tantissimo (in tutte le banche le commissioni dovrebbero essere sia in entrata che in uscita).
+  >>> per velocizzare il processo si può pensare di iniziare ad investire da Allianz (si può acquistare
+      IUSE.MI)
+  Di altre banche dicono che la più conveniente sia Binck.
+  Vedi:
+  https://www.reddit.com/r/ItaliaPersonalFinance/comments/cw42vl/come_faccio_a_capire_quali_sono_le_commissioni/
+  https://www.finanzaonline.com/forum/etf-fondi-e-gestioni-e-investment-certificates/1847021-acquisto-etf-costi-intermediario-e-commissioni-banca-4.html?s=b057dcdd32073555b4d153e678a90343
+  > spread di un etf?
+  > come giudicare la qualità di un etf?
+- si può implementare anche per le azioni (estere: Google, FB, Microsoft, Amazon.. o italiane). Però
+  bisogna considerare anche altri parametri: volume (se non è abbastanza vendo a sotto prezzo,
+  https://www.reddit.com/r/ItaliaPersonalFinance/comments/glf80y/eli5_benefit_per_i_dipendenti_stock_option/
+  commento di francasac)
+- rispetto a fondi azionari con cedole questo approccio vuole essere migliore (più che per la massimizzazione
+  dei profitti) soprattutto per la cancellazione dei drawbacks
+
+*** 14 APRILE ***
+organizzo il progetto a moduli:
+- utils.py: contiene tutte le funzioni usate dagli altri scripts
+- create_model.py: si può selezionare il modello (lstm o lstm+cnn, con parametri dati da file configurazioni)
+- train: carica il modello di create_model, prende i dati di train e test e avvia addestramento
+- evaluate: calcolo yield su test
+- inference: faccio predizione solo per il mese successivo
+
+due modalità di utilizzo:
+- evaluate: divido in train e test e faccio evaluation
+- inference: addestro su tutto il dataset e faccio inferenza solo per il mese successivo
+
+*** modifiche da apportare ***
+- TESTA PROCESS_DATA!!!!
+    >> sembra funzionare correttamente (vedi prova_process_data.pic) ma toglie i primi window campi
+       dall'analisi. Per risolverlo in evaluation dovresti fare lo spit a valle. E' da considerare in
+       inference
+- sviluppa script di grid-search
+- *** invece di fare predizione ogni mese, spostarla a ogni 2 settimane ***
+- testa funzione calcolo net yield
+- introduci indice ETF invece di S&P500

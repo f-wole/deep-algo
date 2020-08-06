@@ -1,0 +1,48 @@
+
+composizione notebook:
+- scarico dati da yahoofinance: (DT)
+	- produco lista primi del mese
+	- faccio medie mobili
+- gross and net yield (UT)
+- create windows (DT)
+	- separo in train e test
+- create models (TR)
+- train the models (TR)
+- evaluate prediction with mse (EV)
+- define the strategy
+- evaluate the strategy
+
+** scripts di "controllo" **
+- vari scripts di test di tutti i componenti
+- scripts di controllo dell'acquisizione dati
+
+** moduli python **
+Parte forecasting:
+- utils (UT): varie funzioni e yields
+- data (DT):
+    IN: data inizio e fine, month-mean o daily (da fare in modo che processi un dataset tra train,
+    test, valid singolarmente per singola chiamata)
+    OUT: processed data
+- train (TR)
+    IN: parametri modello, data (train,valid)
+    OUT: modello trainato
+- evaluate (EV)
+    IN: modello trainato, data (test)
+    OUT: misure
+
+Parte strategia:
+- strategy: one script per strategy
+    IN: modello trainato, dati (validation), modalità (evaluation o inferenza)
+    OUT: gross & net yield if evaluation, else stay or not
+
+** moduli .sh **
+- train_evaluate.sh:
+	data, train, evaluate con train&test = True
+- train_final.sh 
+	data, train con train&test = False
+- evaluate_strategy.sh:
+    IN: script di strategia, modalità, dati
+    OUT: yields o stay or not
+
+PIANO DI LAVORO:
+ci saranno due modalità, scandite dal booleano "mean". Per ora implementa mean=False

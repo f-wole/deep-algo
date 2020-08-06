@@ -1,0 +1,11 @@
+[NetworkProperties]
+filters=64
+ksize=2
+lstm1=300
+lstm2=200
+dense=100
+drop_out=0.5
+n_epochs=600
+lr=0.001
+rop=true
+window=5
