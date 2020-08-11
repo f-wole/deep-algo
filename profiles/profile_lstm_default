@@ -6,4 +6,7 @@ drop_out=0.5
 n_epochs=600
 lr=0.001
 rop=true
+es=true
+mcp=true
+patience=20
 window=5

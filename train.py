@@ -7,15 +7,13 @@ from utils import get_data_yahoo,model_lstm,model_mix,process_data,process_data_
 from keras.callbacks import EarlyStopping,ModelCheckpoint,TensorBoard,ReduceLROnPlateau
 import matplotlib.pyplot as plt
 
-start=literal_eval(sys.argv[1]) # format is year, month, day
-end=literal_eval(sys.argv[2])
-ttratio=float(sys.argv[3])
-out_dir=sys.argv[4]
-model_type=sys.argv[5]
-profile=sys.argv[6]
-batch=int(sys.argv[7])
-data_api=sys.argv[8]
+train_path=sys.argv[1]
+valid_path=sys.argv[2]
+out_dir=sys.argv[3]
+profile=sys.argv[4]
+batch=int(sys.argv[5])
 
+model_type=profile.split("_")[1]
 if not out_dir.endswith("/"):
     out_dir=out_dir+"/"
 os.system("rm -r "+out_dir)
@@ -23,17 +21,15 @@ os.system("mkdir "+out_dir)
 
 # Get data, divide in train & test and save it
 
-if data_api=="yahoo":
-    df,dfm=get_data_yahoo(start,end,'^GSPC')
-num=int(dfm.shape[0])
-df_train=dfm.iloc[:int(ttratio*num),:]
-df_test=dfm.iloc[int(ttratio*num):,:]
-df_train.to_excel(out_dir+"train.xlsx")
-df_test.to_excel(out_dir+"test.xlsx")
-with open(out_dir+"data.pic","wb") as w:
-    pickle.dump([df_train,df_test,model_type,profile,data_api],w)
-if data_api=="yahoo":
-    features=8
+X_train, y_train = "", "" # load train from train_path
+X_valid, y_valid = "", "" # load valid from valid_path
+features = "" # get number of features
+
+print("# X_train: ",X_train.shape)
+print("# y_train: ",y_train.shape)
+print("# X_valid: ",X_valid.shape)
+print("# y_valid: ",y_valid.shape)
+
 
 # Inizialize model
 
@@ -50,6 +46,9 @@ if model_type=="lstm":
     n_epochs = int(config.get('NetworkProperties', 'n_epochs'))
     lr = float(config.get('NetworkProperties', 'lr'))
     rop = config.get('NetworkProperties', 'rop') in ["true","True"]
+    es = config.get('NetworkProperties', 'es') in ["true", "True"]
+    mcp = config.get('NetworkProperties', 'mcp') in ["true", "True"]
+    patience = int(config.get('NetworkProperties', 'patience'))
     window = int(config.get('NetworkProperties', 'window'))
 
     model=model_lstm(window, features,lstm1,lstm2,dense,drop_out,lr)
@@ -64,24 +63,24 @@ if model_type=="mix":
     n_epochs = int(config.get('NetworkProperties', 'n_epochs'))
     lr = float(config.get('NetworkProperties', 'lr'))
     rop = config.get('NetworkProperties', 'rop') in ["true","True"]
+    es=config.get('NetworkProperties', 'es') in ["true","True"]
+    mcp=config.get('NetworkProperties', 'mcp') in ["true","True"]
+    patience=int(config.get('NetworkProperties', 'patience'))
     window = int(config.get('NetworkProperties', 'window'))
 
     model=model_mix(window, features,filters,ksize,lstm1,lstm2,dense,drop_out,lr)
 
 learning_rate_reduction = ReduceLROnPlateau(monitor='loss', patience=25, verbose=1,factor=0.25, min_lr=0.00001)
+early_stopping=EarlyStopping(monitor="val_loss",patience=patience)
+model_ckpt=ModelCheckpoint(monitor="val_loss",save_best_only=True,mode="auto")
 callbacks=[]
 if rop:
     callbacks.append(learning_rate_reduction)
+if es:
+    callbacks.append(early_stopping)
+if mcp:
+    callbacks.append(model_ckpt)
 
-
-# Preprocess data to feed it to the model
-X_train,y_train=process_data_test(df_train,2,data_api)
-X_train,y_train=process_data(df_train,window,data_api)
-X_test,y_test=process_data(df_test,window,data_api)
-print("# X_Train: ",X_train.shape)
-print("# y_Train: ",y_train.shape)
-print("# X_Test: ",X_test.shape)
-print("# y_Test: ",y_test.shape)
 
 # Train
 
@@ -96,4 +95,5 @@ plt.xlabel('epoch')
 plt.legend(['train', 'test'], loc='upper right')
 plt.savefig(out_dir+"train_plot.png")
 
-model.save_weights(out_dir+"model_"+model_type+".h5")
+if not mcp:
+    model.save_weights(out_dir+"model_"+model_type+".h5")

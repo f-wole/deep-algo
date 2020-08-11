@@ -182,7 +182,7 @@ def separate_ones(u):
     return out, n
 
 
-def yield_net(df, v):
+def yield_net(df, v,tax_cg=0.26,comm_bk=0.01):
     n_years = len(v) / 12
 
     w, n = separate_ones(v)

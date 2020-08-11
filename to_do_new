@@ -19,7 +19,7 @@ composizione notebook:
 ** moduli python **
 Parte forecasting:
 - utils (UT): varie funzioni e yields
-- data (DT):
+- get_data (DT):
     IN: data inizio e fine, month-mean o daily (da fare in modo che processi un dataset tra train,
     test, valid singolarmente per singola chiamata)
     OUT: processed data
@@ -29,6 +29,7 @@ Parte forecasting:
 - evaluate (EV)
     IN: modello trainato, data (test)
     OUT: misure
+- inference
 
 Parte strategia:
 - strategy: one script per strategy
@@ -45,4 +46,4 @@ Parte strategia:
     OUT: yields o stay or not
 
 PIANO DI LAVORO:
-ci saranno due modalità, scandite dal booleano "mean". Per ora implementa mean=False
+ci saranno due modalità, scandite dal booleano "mean". Per ora implementa mean=True
