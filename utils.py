@@ -9,25 +9,28 @@ from keras.layers import Dense,Dropout,BatchNormalization,Conv1D,Flatten,MaxPool
 from keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
 
-def get_data_yahoo(mean,start,end,window,index):
+def get_data_yahoo(start,end,window,mean=True,index='^GSPC'):
+
+    # input format: (year, day, month)
+
     #
     # returns indices and moving averages for all months between start (included) and end (excluded)
     # Tested
 
-    if not mean:
-        # per ora non considero window
-        start_date = datetime.datetime(start[0], start[1], start[2])
-        great_start_date = datetime.datetime(start[0]-2, start[1], start[2])
-        end_date = datetime.datetime(end[0], end[1], end[2])
-        print("start ",start_date)
-        print("end ",end_date)
-        df = pdr.get_data_yahoo(index, start=great_start_date, end=end_date)
-        lista_date=list(df.index)
-        str_ind=[i for i,date in enumerate(lista_date) if date==start_date][0]
-        window_start=lista_date[str_ind-window]
-        print("window_start ",window_start)
-        df = pdr.get_data_yahoo(index, start=window_start, end=end_date)
-        return df
+    # if mean:
+    #     # per ora non considero window
+    #     start_date = datetime.datetime(start[0], start[1], start[2])
+    #     great_start_date = datetime.datetime(start[0]-2, start[1], start[2])
+    #     end_date = datetime.datetime(end[0], end[1], end[2])
+    #     print("start ",start_date)
+    #     print("end ",end_date)
+    #     df = pdr.get_data_yahoo(index, start=great_start_date, end=end_date)
+    #     lista_date=list(df.index)
+    #     str_ind=[i for i,date in enumerate(lista_date) if date==start_date][0]
+    #     window_start=lista_date[str_ind-window]
+    #     print("window_start ",window_start)
+    #     df = pdr.get_data_yahoo(index, start=window_start, end=end_date)
+    #     return df
     start[0]=start[0]-2
     start_date = datetime.datetime(start[0],start[1],start[2])
     end_date = datetime.datetime(end[0],end[1],end[2])
@@ -65,7 +68,7 @@ def get_data_yahoo(mean,start,end,window,index):
         dfm[index+"_avg"]=dfm[index]
         dfm=dfm.drop(index,axis=1)
 
-    return df,dfm
+    return dfm
 
 
 def model_lstm(window, features,lstm1,lstm2,dense,drop_out,lr):
