@@ -13,5 +13,8 @@ out_dir="prove/model"
 profile="profiles/profile_lstm_default"
 batch=24
 
-python get_data.py ${train_start} ${valid_start} ${test_start} ${test_end} ${mean} ${window} ${train_path} ${valid_path} ${test_path}
-#python train.py ${train_path} ${valid_path} ${out_dir} ${profile} ${batch}
+python get_data.py ${train_start} ${valid_start} ${mean} ${window} ${train_path}
+python get_data.py ${valid_start} ${test_start} ${mean} ${window} ${valid_path} ${test_path}
+python get_data.py ${test_start} ${test_end} ${mean} ${window} ${test_path}
+python train.py ${train_path} ${valid_path} ${out_dir} ${profile} ${batch}
+python get_strategy.py ${valid_path} ${out_dir} ${profile}

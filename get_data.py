@@ -2,26 +2,37 @@ import os
 import sys
 import json
 import pickle
-from utils import get_data_yahoo
+from utils import get_data_yahoo, process_data
 
-train_start=json.loads(sys.argv[1]) # format: (year, month) included
-valid_start=json.loads(sys.argv[2]) # format: (year, month) included
-test_start=json.loads(sys.argv[3]) # format: (year, month) included
-test_end=json.loads(sys.argv[4]) # format: (year, month) excluded
-mean=sys.argv[5] in ["true","True"]
-window=int(sys.argv[6])
-train_path=sys.argv[7]
-valid_path=sys.argv[8]
-test_path=sys.argv[9]
+start=json.loads(sys.argv[1]) # format: (year, month) included
+end=json.loads(sys.argv[2]) # format: (year, month) excluded
+mean=sys.argv[3] in ["true","True"]
+window=int(sys.argv[4])
+save_path=sys.argv[5]
 
 ### get data and process it
 # salvo un pickle file con: window, pandas dataframes e versioni tensorizzate per NN
 
+# fix start
+start[0]-=2
+start[1]-=window
+if start[1]<=0:
+    start[1]+=12
+    start[0]-=1
+
 # FIX DATES
 last_days={1:31,2:28,3:31,4:30,5:31,6:30,7:31,8:31,9:30,10:31,11:30,12:31}
-dfm=get_data_yahoo([train_start[0],train_start[1],1],
-                   [test_end[0],test_end[1],last_days[test_end[1]]],
+dfm=get_data_yahoo([start[0],start[1],1],
+                   [end[0],end[1],last_days[end[1]]],
                    window)
 
-with open(train_path,"wb") as w:
-    pickle.dump(dfm,w)
+X,y=process_data(dfm,window)
+dfm=dfm[window:]
+
+with open(save_path,"wb") as w:
+    pickle.dump([X,y,dfm,window],w)
+
+print("### Successfully saved to ",save_path)
+print("\t X shape = ",X.shape)
+print("\t y shape = ",y.shape)
+print("\t dfm shape = ",dfm.shape)

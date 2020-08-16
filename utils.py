@@ -31,7 +31,6 @@ def get_data_yahoo(start,end,window,mean=True,index='^GSPC'):
     #     print("window_start ",window_start)
     #     df = pdr.get_data_yahoo(index, start=window_start, end=end_date)
     #     return df
-    start[0]=start[0]-2
     start_date = datetime.datetime(start[0],start[1],start[2])
     end_date = datetime.datetime(end[0],end[1],end[2])
     df = pdr.get_data_yahoo(index, start=start_date, end=end_date)
@@ -60,6 +59,7 @@ def get_data_yahoo(start,end,window,mean=True,index='^GSPC'):
 
     dfm["mv_avg_12"] = dfm["Open"].rolling(window=12).mean().shift(1)
     dfm["mv_avg_24"] = dfm["Open"].rolling(window=24).mean().shift(1)
+    dfm["quot"] = dfm["fd_nm_open"].divide(dfm["fd_cm_open"])
 
     dfm = dfm.iloc[24:, :]  # we remove the first 24 months, since they do not have the 2-year moving average
 
@@ -102,7 +102,28 @@ def model_mix(window, features,filters,ksize,lstm1,lstm2,dense,drop_out,lr):
     return model
 
 
-def process_data(df,window,y_label):
+def process_data(df,window):
+    def create_window(data, window_size=1):
+        data_s = data.copy()
+        for i in range(window_size):
+            data = pd.concat([data, data_s.shift(-(i + 1))], axis=1)
+
+        data.dropna(axis=0, inplace=True)
+        return (data)
+
+    scaler = MinMaxScaler(feature_range=(0, 1))
+    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg", "Volume_avg", "fd_cm_open",
+                                               "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
+    X = dg[[0, 1, 2, 3, 4, 5, 6, 7]]
+    X = create_window(X, window)
+    X = np.reshape(X.values, (X.shape[0], window + 1, 8))
+
+    y = np.array(dg[8][window:])
+
+    return X, y
+
+
+def process_data_mod(df,window,y_label):
     def create_window(data, window_size=1):
         data_s = data.copy()
         for i in range(window_size):
@@ -116,43 +137,17 @@ def process_data(df,window,y_label):
     scaler = MinMaxScaler(feature_range=(0, 1))
     scaled=pd.DataFrame(scaler.fit_transform(df.values))
     not_scaled=pd.DataFrame(df.values)
-    # dg = pd.DataFrame(scaler.fit_transform(dfm[["High_avg", "Low_avg", "Open_avg", "Close_avg",
-    #                                                 "Volume_avg", "fd_cm_open",
-    #                                                 "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
+    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg",
+                                                    "Volume_avg", "fd_cm_open",
+                                                    "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
 
 
-    X = create_window(not_scaled, window)
+    X = create_window(scaled, window)
     X = np.reshape(X.values, (X.shape[0], window + 1, cols))
 
     y = np.array(not_scaled[ind_y][window:])
 
     return X,y
-
-
-def process_data_test(dfm,window,data_api):
-    def create_window(data, window_size=1):
-        data_s = data.copy()
-        for i in range(window_size):
-            data = pd.concat([data, data_s.shift(-(i + 1))], axis=1)
-
-        data.dropna(axis=0, inplace=True)
-        return (data)
-
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    if data_api=="yahoo":
-        dg = pd.DataFrame(scaler.fit_transform(dfm[["High_avg", "Low_avg", "Open_avg", "Close_avg",
-                                                    "Volume_avg", "fd_cm_open",
-                                                    "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
-    dg=pd.DataFrame(dfm[["High_avg", "Low_avg", "Open_avg", "Close_avg","Volume_avg", "fd_cm_open",
-            "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values)
-    X = dg[[0, 1, 2, 3, 4, 5, 6, 7]]
-    X = create_window(X, window)
-    X = np.reshape(X.values, (X.shape[0], window + 1, 8))
-
-    y = np.array(dg[8][window:])
-    with open("prova_process_data.pic","wb") as wb:
-        pickle.dump([X,y],wb)
-    return X, y
 
 def yield_gross(df,v):
     ## df["quot"] è il rapporto tra il prezzo open del primo giorno del mese successivo con
@@ -189,7 +184,7 @@ def yield_net(df, v,tax_cg=0.26,comm_bk=0.01):
     n_years = len(v) / 12
 
     w, n = separate_ones(v)
-    A = (w * np.array(df["quot"]) + (1 - w)).prod(axis=1)  # A is the product of each group of ones of 1 for df["quot"]
+    A = (w * np.array(df["quot"]) + (1 - w)).prod(axis=-1)  # A is the product of each group of ones of 1 for df["quot"]
     A1p = np.maximum(0, np.sign(A - 1))  # vector of ones where the corresponding element if  A  is > 1, other are 0
     Ap = A * A1p  # vector of elements of A > 1, other are 0
     Am = A - Ap  # vector of elements of A <= 1, other are 0

@@ -3,8 +3,8 @@ import sys
 import pickle
 import configparser
 from ast import literal_eval
-from utils import get_data_yahoo,model_lstm,model_mix,process_data,process_data_test
-from keras.callbacks import EarlyStopping,ModelCheckpoint,TensorBoard,ReduceLROnPlateau
+from utils import model_lstm,model_mix
+from keras.callbacks import EarlyStopping,ModelCheckpoint,ReduceLROnPlateau
 import matplotlib.pyplot as plt
 
 train_path=sys.argv[1]
@@ -13,17 +13,19 @@ out_dir=sys.argv[3]
 profile=sys.argv[4]
 batch=int(sys.argv[5])
 
-model_type=profile.split("_")[1]
 if not out_dir.endswith("/"):
     out_dir=out_dir+"/"
+model_type=profile.split("_")[1]
+model_path=out_dir+"model_"+model_type+".h5"
 os.system("rm -r "+out_dir)
 os.system("mkdir "+out_dir)
 
-# Get data, divide in train & test and save it
-
-X_train, y_train = "", "" # load train from train_path
-X_valid, y_valid = "", "" # load valid from valid_path
-features = "" # get number of features
+# load data
+with open(train_path,"rb") as r:
+    X_train, y_train = pickle.load(r)[:2] # load train from train_path
+with open(valid_path,"rb") as r:
+    X_valid, y_valid = pickle.load(r)[:2] # load valid from valid_path
+features = X_valid.shape[2] # get number of features
 
 print("# X_train: ",X_train.shape)
 print("# y_train: ",y_train.shape)
@@ -72,7 +74,7 @@ if model_type=="mix":
 
 learning_rate_reduction = ReduceLROnPlateau(monitor='loss', patience=25, verbose=1,factor=0.25, min_lr=0.00001)
 early_stopping=EarlyStopping(monitor="val_loss",patience=patience)
-model_ckpt=ModelCheckpoint(monitor="val_loss",save_best_only=True,mode="auto")
+model_ckpt=ModelCheckpoint(monitor="val_loss",save_best_only=True,mode="auto",filepath=model_path)
 callbacks=[]
 if rop:
     callbacks.append(learning_rate_reduction)
@@ -84,7 +86,7 @@ if mcp:
 
 # Train
 
-history_lstm=model.fit(X_train,y_train,epochs=n_epochs, batch_size=batch, validation_data=(X_test, y_test),
+history_lstm=model.fit(X_train,y_train,epochs=n_epochs, batch_size=batch, validation_data=(X_valid, y_valid),
                        verbose=1, callbacks=callbacks,shuffle=False)
 
 plt.plot(history_lstm.history['loss'])
@@ -92,8 +94,8 @@ plt.plot(history_lstm.history['val_loss'])
 plt.title('model loss')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-plt.legend(['train', 'test'], loc='upper right')
+plt.legend(['train', 'valid'], loc='upper right')
 plt.savefig(out_dir+"train_plot.png")
 
 if not mcp:
-    model.save_weights(out_dir+"model_"+model_type+".h5")
+    model.save(model_path)
