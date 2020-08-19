@@ -2,6 +2,7 @@ import os
 import sys
 import pickle
 import configparser
+import pandas as pd
 from ast import literal_eval
 from utils import model_lstm,model_mix
 from keras.callbacks import EarlyStopping,ModelCheckpoint,ReduceLROnPlateau
@@ -96,6 +97,10 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 plt.legend(['train', 'valid'], loc='upper right')
 plt.savefig(out_dir+"train_plot.png")
+
+log={key:history_lstm.history[key] for key in ["loss","val_loss"]}
+df=pd.DataFrame(log)
+df.to_excel(out_dir+"train_log.xlsx")
 
 if not mcp:
     model.save(model_path)
