@@ -13,6 +13,7 @@ valid_path=sys.argv[2]
 out_dir=sys.argv[3]
 profile=sys.argv[4]
 batch=int(sys.argv[5])
+window=int(sys.argv[6])
 
 if not out_dir.endswith("/"):
     out_dir=out_dir+"/"
@@ -52,7 +53,6 @@ if model_type=="lstm":
     es = config.get('NetworkProperties', 'es') in ["true", "True"]
     mcp = config.get('NetworkProperties', 'mcp') in ["true", "True"]
     patience = int(config.get('NetworkProperties', 'patience'))
-    window = int(config.get('NetworkProperties', 'window'))
 
     model=model_lstm(window, features,lstm1,lstm2,dense,drop_out,lr)
 
@@ -69,7 +69,6 @@ if model_type=="mix":
     es=config.get('NetworkProperties', 'es') in ["true","True"]
     mcp=config.get('NetworkProperties', 'mcp') in ["true","True"]
     patience=int(config.get('NetworkProperties', 'patience'))
-    window = int(config.get('NetworkProperties', 'window'))
 
     model=model_mix(window, features,filters,ksize,lstm1,lstm2,dense,drop_out,lr)
 
