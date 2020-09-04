@@ -1,0 +1,31 @@
+Da verificare:
+
+- quando fai create_window togli i primi window mesi: per questo in get_data ho messo la start_date prime di window mesi
+- in yield_net da
+A = (w * np.array(df["quot"]) + (1 - w)).prod(axis=1)
+a
+A = (w * np.array(df["quot"]) + (1 - w)).prod(axis=-1)
+perchè non funzionava con un solo periodo IN
+- in valid e test ho messo un mese prima per avere la predizione della differenza in strategy ed evaluate
+- con questo get_data sto facendo un minMaxScaler per ogni dataset, invece di uno globale: è un problema?
+- ho cambiato il rapporto tra open prices con close prices del primo giorno del mese, ma va bene? ovvero,
+l'acquisto è istantaneo?
+
+**** BUG ****
+vedi evaluation su test di trial_bug: c'è un bug perchè con quegli IN e OUT non può performare meglio di Buy & Hold!!!
+>>> non puoi fare riferimento a quel grafico, devi per forza riscalare!!
+*************
+
+DA FARE:
+- metti qualche info sulle date nei grafici
+- la predizione sembra essere "in ritardo"
+- window può andare indietro al massimo di 12 mesi, generalizza!
+
+TEST:
+- in inferenza credo basti aggiungere i dati del mese precedente per avere differenza. Però devi verificare che di mese in
+mese ottieni gli stessi risultati della predizione in blocco
+- evaluation:
+    - addestramento su S&P500 e test su vari etf
+    - devi testare sia su periodo con grosse cadute (deve evitarle) che periodo di tutta crescita (deve essere stabile)
+
+** passa a granularità bi-settimanale? (perchè non riesce a cogliere il recupero post-covid)

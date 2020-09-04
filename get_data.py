@@ -3,6 +3,7 @@ import sys
 import json
 import pickle
 from utils import get_data_yahoo, process_data
+import matplotlib.pyplot as plt
 
 start=json.loads(sys.argv[1]) # format: (year, month) included
 end=json.loads(sys.argv[2]) # format: (year, month) excluded
@@ -13,6 +14,9 @@ train=sys.argv[6] in ["true","True"]
 
 ### get data and process it
 # salvo un pickle file con: window, pandas dataframes e versioni tensorizzate per NN
+
+if not save_path.endswith("/"):
+    save_path+="/"
 
 # fix start
 start[0]-=2
@@ -33,23 +37,16 @@ dfm=get_data_yahoo([start[0],start[1],1],
 X,y=process_data(dfm,window)
 dfm=dfm[window:]
 
-if train:
-    main_dir=save_path.split("/")[0]
-    print("main_dir = ",main_dir)
-    os.system("rm -r "+main_dir)
-    full_dir="/".join(save_path.split("/")[:-1])
-    print("full_dir = ",full_dir)
-    os.system("mkdir -p "+full_dir)
 
-with open(save_path,"wb") as w:
+with open(save_path+"data.pkl","wb") as w:
     pickle.dump([X,y,dfm,window],w)
 
-dfm.to_excel(save_path.replace("pkl","xlsx"))
+dfm.to_excel(save_path+"data.xlsx")
 dfu=dfm.index
 dfu.drop_duplicates
 dfu=list(dfu)
 
-with open(save_path.replace("pkl","dates"),"w",encoding="utf8") as w:
+with open(save_path+"dates","w",encoding="utf8") as w:
     for date in dfu:
         date=str(date)
         date="-".join(date.split("-")[:2])
@@ -59,3 +56,8 @@ print("### Successfully saved to ",save_path)
 print("\t X shape = ",X.shape)
 print("\t y shape = ",y.shape)
 print("\t dfm shape = ",dfm.shape)
+
+plt.plot(dfm["fd_cm_close"])
+plt.title("Close price of first day of current month")
+plt.xticks(rotation=45)
+plt.savefig(save_path+"plot")

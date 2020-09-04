@@ -1,12 +1,11 @@
 [NetworkProperties]
-lstm1=300
-lstm2=200
-dense=100
+lstm1=400
+lstm2=300
+dense=150
 drop_out=0.5
-n_epochs=600
+n_epochs=10
 lr=0.001
 rop=true
 es=true
 mcp=true
-patience=20
-window=5
+patience=50

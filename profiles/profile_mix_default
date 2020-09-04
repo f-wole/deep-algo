@@ -1,6 +1,6 @@
 [NetworkProperties]
 filters=64
-ksize=2
+ksize=4
 lstm1=300
 lstm2=200
 dense=100
@@ -10,5 +10,4 @@ lr=0.001
 rop=true
 es=true
 mcp=true
-patience=20
-window=5
+patience=50

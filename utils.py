@@ -53,13 +53,13 @@ def get_data_yahoo(start,end,window,mean=True,index='^GSPC'):
 
     dfm["fd_cm"] = first_days[:-1]
     dfm["fd_nm"] = first_days[1:]
-    dfm["fd_cm_open"] = np.array(df.loc[first_days[:-1], "Open"])
-    dfm["fd_nm_open"] = np.array(df.loc[first_days[1:], "Open"])
-    dfm["ratio"] = dfm["fd_nm_open"].divide(dfm["fd_cm_open"])
+    dfm["fd_cm_close"] = np.array(df.loc[first_days[:-1], "Close"])
+    dfm["fd_nm_close"] = np.array(df.loc[first_days[1:], "Close"])
+    dfm["ratio"] = dfm["fd_nm_close"].divide(dfm["fd_cm_close"])
 
     dfm["mv_avg_12"] = dfm["Open"].rolling(window=12).mean().shift(1)
     dfm["mv_avg_24"] = dfm["Open"].rolling(window=24).mean().shift(1)
-    dfm["quot"] = dfm["fd_nm_open"].divide(dfm["fd_cm_open"])
+    dfm["quot"] = dfm["fd_nm_close"].divide(dfm["fd_cm_close"])
 
     dfm = dfm.iloc[24:, :]  # we remove the first 24 months, since they do not have the 2-year moving average
 
@@ -112,8 +112,8 @@ def process_data(df,window):
         return (data)
 
     scaler = MinMaxScaler(feature_range=(0, 1))
-    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg", "Volume_avg", "fd_cm_open",
-                                               "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
+    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg", "Volume_avg", "fd_cm_close",
+                                               "mv_avg_12", "mv_avg_24", "fd_nm_close"]].values))
     X = dg[[0, 1, 2, 3, 4, 5, 6, 7]]
     X = create_window(X, window)
     X = np.reshape(X.values, (X.shape[0], window + 1, 8))
@@ -123,31 +123,6 @@ def process_data(df,window):
     return X, y
 
 
-def process_data_mod(df,window,y_label):
-    def create_window(data, window_size=1):
-        data_s = data.copy()
-        for i in range(window_size):
-            data = pd.concat([data, data_s.shift(-(i + 1))], axis=1)
-
-        data.dropna(axis=0, inplace=True)
-        return (data)
-
-    cols=len(list(df.columns))
-    ind_y=[i for i,lb in enumerate(df.columns) if lb==y_label][0]
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled=pd.DataFrame(scaler.fit_transform(df.values))
-    not_scaled=pd.DataFrame(df.values)
-    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg",
-                                                    "Volume_avg", "fd_cm_open",
-                                                    "mv_avg_12", "mv_avg_24", "fd_nm_open"]].values))
-
-
-    X = create_window(scaled, window)
-    X = np.reshape(X.values, (X.shape[0], window + 1, cols))
-
-    y = np.array(not_scaled[ind_y][window:])
-
-    return X,y
 
 def yield_gross(df,v):
     ## df["quot"] è il rapporto tra il prezzo open del primo giorno del mese successivo con
@@ -192,3 +167,36 @@ def yield_net(df, v,tax_cg=0.26,comm_bk=0.01):
     prod = An.prod() * ((1 - comm_bk) ** (2 * n))
 
     return (prod - 1) * 100, ((prod ** (1 / n_years)) - 1) * 100
+
+
+def get_ins(npdata,v):
+    x,y=[],[]
+    for i in range(npdata.shape[0]):
+        if v[i]==1:
+            if i==0:
+                x.append(i)
+                y.append(npdata[i])
+            else:
+                if v[i-1]==0:
+                    x.append(i)
+                    y.append(npdata[i])
+    # df=pd.DataFrame({"index":pd.DatetimeIndex(x),"value":np.array(y)})
+    # df.index=pd.to_datetime(df.index)
+    # df.set_index('index',inplace=True)
+    return x,y
+
+def get_outs(npdata,v):
+    x, y = [], []
+    for i in range(npdata.shape[0]):
+        if v[i] == 0:
+            if i == 0:
+                x.append(i)
+                y.append(npdata[i])
+            else:
+                if v[i - 1] == 1:
+                    x.append(i)
+                    y.append(npdata[i])
+    # df=pd.DataFrame({"index":pd.DatetimeIndex(x),"value":np.array(y)})
+    # df.index=pd.to_datetime(df.index)
+    # df.set_index('index',inplace=True)
+    return x, y

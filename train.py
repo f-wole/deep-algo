@@ -15,17 +15,19 @@ profile=sys.argv[4]
 batch=int(sys.argv[5])
 window=int(sys.argv[6])
 
+if not train_path.endswith("/"):
+    train_path+="/"
+if not valid_path.endswith("/"):
+    valid_path+="/"
 if not out_dir.endswith("/"):
     out_dir=out_dir+"/"
 model_type=profile.split("_")[1]
 model_path=out_dir+"model_"+model_type+".h5"
-os.system("rm -r "+out_dir)
-os.system("mkdir "+out_dir)
 
 # load data
-with open(train_path,"rb") as r:
+with open(train_path+"data.pkl","rb") as r:
     X_train, y_train = pickle.load(r)[:2] # load train from train_path
-with open(valid_path,"rb") as r:
+with open(valid_path+"data.pkl","rb") as r:
     X_valid, y_valid = pickle.load(r)[:2] # load valid from valid_path
 features = X_valid.shape[2] # get number of features
 
@@ -73,7 +75,7 @@ if model_type=="mix":
     model=model_mix(window, features,filters,ksize,lstm1,lstm2,dense,drop_out,lr)
 
 learning_rate_reduction = ReduceLROnPlateau(monitor='loss', patience=25, verbose=1,factor=0.25, min_lr=0.00001)
-early_stopping=EarlyStopping(monitor="val_loss",patience=patience)
+early_stopping=EarlyStopping(monitor="val_loss",patience=patience,min_delta=0.0001)
 model_ckpt=ModelCheckpoint(monitor="val_loss",save_best_only=True,mode="auto",filepath=model_path)
 callbacks=[]
 if rop:
@@ -103,3 +105,14 @@ df.to_excel(out_dir+"train_log.xlsx")
 
 if not mcp:
     model.save(model_path)
+
+y_pred=model.predict(X_train)
+plt.close()
+plt.figure(figsize=(30,10))
+plt.plot(y_train[1:], label="actual")
+plt.plot(y_pred[1:], label="prediction lstm")
+
+plt.legend(fontsize=20)
+plt.grid(axis="both")
+plt.title("Train",fontsize=25)
+plt.savefig(out_dir+"train_pred.png")

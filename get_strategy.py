@@ -3,7 +3,7 @@ import pickle
 import os
 import sys
 import keras
-from utils import yield_net
+from utils import yield_net,get_ins,get_outs
 from scipy import optimize
 import matplotlib.pyplot as plt
 
@@ -14,17 +14,15 @@ out_dir=sys.argv[4]
 
 if not out_dir.endswith("/"):
     out_dir=out_dir+"/"
-os.system("rm -r "+out_dir)
-os.system("mkdir "+out_dir)
-
-
 if not model_dir.endswith("/"):
     model_dir=model_dir+"/"
+if not valid_path.endswith("/"):
+    valid_path+="/"
 model_type=profile.split("_")[1]
 model_path=model_dir+"model_"+model_type+".h5"
 
 model=keras.models.load_model(model_path)
-with open(valid_path,"rb") as r:
+with open(valid_path+"data.pkl","rb") as r:
     X,y,dfm,window=pickle.load(r)
 
 dfm=dfm[1:]
@@ -67,11 +65,13 @@ assert(y_pred[1:].shape[0]==y[1:].shape[0])
 plt.figure(figsize=(30,10))
 plt.plot(y[1:], label="actual")
 plt.plot(y_pred[1:], label="prediction lstm")
-plt.plot(v,label="Tuned in and out")
-plt.plot(v_sim,label="Simple In and out")
+plt.plot(get_ins(y[1:],v)[0],get_ins(y[1:],v)[1],'^', markersize=10, color='g',label="Tuned in")
+plt.plot(get_outs(y[1:],v)[0],get_outs(y[1:],v)[1],'v', markersize=10, color='r',label="Tuned out")
+plt.plot(get_ins(y[1:],v_sim)[0],get_ins(y[1:],v_sim)[1],'^', markersize=10, color='b',label="Simple in")
+plt.plot(get_outs(y[1:],v_sim)[0],get_outs(y[1:],v_sim)[1],'v', markersize=10, color='y',label="Simple out")
 plt.legend(fontsize=20)
 plt.grid(axis="both")
-plt.title("Prediction and strategy on Validation",fontsize=25)
+plt.title("Validation",fontsize=25)
 plt.savefig(out_dir+"tuning.png")
 
 with open(out_dir+"params.pkl","wb") as w:
