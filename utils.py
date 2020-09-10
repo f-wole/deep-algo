@@ -13,62 +13,28 @@ def get_data_yahoo(start,end,window,mean=True,index='^GSPC'):
 
     # input format: (year, day, month)
 
-    #
-    # returns indices and moving averages for all months between start (included) and end (excluded)
-    # Tested
-
-    # if mean:
-    #     # per ora non considero window
-    #     start_date = datetime.datetime(start[0], start[1], start[2])
-    #     great_start_date = datetime.datetime(start[0]-2, start[1], start[2])
-    #     end_date = datetime.datetime(end[0], end[1], end[2])
-    #     print("start ",start_date)
-    #     print("end ",end_date)
-    #     df = pdr.get_data_yahoo(index, start=great_start_date, end=end_date)
-    #     lista_date=list(df.index)
-    #     str_ind=[i for i,date in enumerate(lista_date) if date==start_date][0]
-    #     window_start=lista_date[str_ind-window]
-    #     print("window_start ",window_start)
-    #     df = pdr.get_data_yahoo(index, start=window_start, end=end_date)
-    #     return df
-    start_date = datetime.datetime(start[0],start[1],start[2])
-    end_date = datetime.datetime(end[0],end[1],end[2])
+    start_date = datetime.datetime(start[0], start[1], start[2])
+    end_date = datetime.datetime(end[0], end[1], end[2])
     df = pdr.get_data_yahoo(index, start=start_date, end=end_date)
-    df.drop("Adj Close", axis=1, inplace=True)
+    to_drop = ["High", "Low", "Adj Close"]
+    df.drop(to_drop, axis=1, inplace=True)
 
-    first_days = []
-    # First year
-    for month in range(start[1], 13):
-        first_days.append(min(df[str(start[0]) + "-" + str(month)].index))
-    # Other years
-    for year in range(start[0] + 1, end[0]):
-        for month in range(1, 13):
-            first_days.append(min(df[str(year) + "-" + str(month)].index))
-    # Last year
-    for month in range(1, end[1] + 1):
-        first_days.append(min(df[str(end[0]) + "-" + str(month)].index))
+    df["weekday"] = df.index.weekday  # The day of the week with Monday=0, Sunday=6.
 
-    dfm = df.resample("M").mean()
-    dfm = dfm[:-1]  # As we said, we do not consider the month of end_date
+    df["Close_30"] = df["Close"].rolling(window=30).mean().shift(1)
+    df["Close_150"] = df["Close"].rolling(window=150).mean().shift(1)
+    df["Open_30"] = df["Open"].rolling(window=30).mean().shift(1)
+    df["Open_150"] = df["Open"].rolling(window=150).mean().shift(1)
+    df["Volume_30"] = df["Volume"].rolling(window=30).mean().shift(1)
+    df["Volume_150"] = df["Volume"].rolling(window=150).mean().shift(1)
 
-    dfm["fd_cm"] = first_days[:-1]
-    dfm["fd_nm"] = first_days[1:]
-    dfm["fd_cm_close"] = np.array(df.loc[first_days[:-1], "Close"])
-    dfm["fd_nm_close"] = np.array(df.loc[first_days[1:], "Close"])
-    dfm["ratio"] = dfm["fd_nm_close"].divide(dfm["fd_cm_close"])
+    df = df[150:]
+    df = df.loc[df["weekday"] == 0]
+    df["Open next"] = df["Open"].shift(-1)
+    df["quot"] = df["Open next"] / df["Open"]
+    df = df[:-1]
 
-    dfm["mv_avg_12"] = dfm["Open"].rolling(window=12).mean().shift(1)
-    dfm["mv_avg_24"] = dfm["Open"].rolling(window=24).mean().shift(1)
-    dfm["quot"] = dfm["fd_nm_close"].divide(dfm["fd_cm_close"])
-
-    dfm = dfm.iloc[24:, :]  # we remove the first 24 months, since they do not have the 2-year moving average
-
-    indexes=["High","Low","Open","Close","Volume"]
-    for index in indexes:
-        dfm[index+"_avg"]=dfm[index]
-        dfm=dfm.drop(index,axis=1)
-
-    return dfm
+    return df
 
 
 def model_lstm(window, features,lstm1,lstm2,dense,drop_out,lr):
@@ -112,11 +78,12 @@ def process_data(df,window):
         return (data)
 
     scaler = MinMaxScaler(feature_range=(0, 1))
-    dg = pd.DataFrame(scaler.fit_transform(df[["High_avg", "Low_avg", "Open_avg", "Close_avg", "Volume_avg", "fd_cm_close",
-                                               "mv_avg_12", "mv_avg_24", "fd_nm_close"]].values))
-    X = dg[[0, 1, 2, 3, 4, 5, 6, 7]]
+    lista=["Open","Open_30","Open_150","Close","Close_30","Close_150","Volume","Volume_30",
+           "Volume_150","Open next"]
+    dg = pd.DataFrame(scaler.fit_transform(df[lista].values))
+    X = dg[[0, 1, 2, 3, 4, 5, 6, 7,8]]
     X = create_window(X, window)
-    X = np.reshape(X.values, (X.shape[0], window + 1, 8))
+    X = np.reshape(X.values, (X.shape[0], window + 1, 9))
 
     y = np.array(dg[8][window:])
 
@@ -129,7 +96,7 @@ def yield_gross(df,v):
     ## il prezzo open del primo giorno del mese corrente
     ## v è il vettore che indica se sei o no nel mercato in quel mese
     prod=(v*df["quot"]+1-v).prod()
-    n_years=len(v)/12
+    n_years=len(v)/(12*4)
     return (prod-1)*100,((prod**(1/n_years))-1)*100
 
 
@@ -155,8 +122,8 @@ def separate_ones(u):
     return out, n
 
 
-def yield_net(df, v,tax_cg=0.26,comm_bk=0.01):
-    n_years = len(v) / 12
+def yield_net(df, v,tax_cg=0.26,comm_bk=0.001):
+    n_years = len(v) / (12*4)
 
     w, n = separate_ones(v)
     A = (w * np.array(df["quot"]) + (1 - w)).prod(axis=-1)  # A is the product of each group of ones of 1 for df["quot"]

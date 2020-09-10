@@ -1,21 +1,14 @@
 #!/bin/bash
 
-train_start="[1980,1]" # format: (year, month)
-train_end="[2002,10]"
-valid_start="[2002,11]" # format: (year, month)
-valid_end="[2010,3]"
-test_start="[2016,3]" # format: (year, month)
-test_end="[2020,7]" # format: (year, month)
-mean="true"
-window=8
-#train_path="trial_bug/data/train.pkl"
-#valid_path="trial_bug/data/valid.pkl"
-#test_path="trial_bug/data/test.pkl"
-#out_dir="trial_bug/trainining"
+train_start="[1980,1,15]" # format: (year, month)
+train_end="[2002,10,20]"
+valid_start="[2002,11,30]" # format: (year, month)
+valid_end="[2010,3,1]"
+test_start="[2016,3,14]" # format: (year, month)
+test_end="[2020,7,5]" # format: (year, month)
+window=10
 profile="profiles/profile_mix_default"
 batch=24
-#strategy_dir="trial_bug/strategy"
-#evaluate_dir="trial_bug/evaluate"
 
 path="trial"
 train_path=${path}"/data/train"

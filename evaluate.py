@@ -44,7 +44,6 @@ print("Annual percentage gain on test:: ",yield_net(dfm,v)[1])
 w_sim=np.diff(y_pred.reshape(y_pred.shape[0]),1)
 v_sim=np.maximum(np.sign(w_sim),0)
 v_buyhold=np.ones(v_sim.shape[0])
-# v_ma=dfm["fd_cm_open"]>dfm["mv_avg_12"]
 
 with open(out_dir+"parameters","w",encoding="utf8") as w:
     w.write("a = "+str(a)+"\n")
